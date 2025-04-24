@@ -1,0 +1,30 @@
+# Hidden files
+.directory
+.fuse-*
+.*.kate-swp
+.kdev4/
+
+# Temp files
+*~
+*.bak
+*.zip
+
+# Binary files
+*.exe
+*.o
+
+# Project files
+*.pro.user
+
+# C++ files
+*.moc
+moc_*.cpp
+ui_*.h
+
+# Python files
+__pycache__
+*.pyc
+ui_*.py
+
+# Resource files
+src/resources_rc.py
