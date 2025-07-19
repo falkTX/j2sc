@@ -1,10 +1,12 @@
 # JACK 2 Simple Configurator
 
-j2sc stands for JACK 2 Simple Configurator and is, as the name says, a configuration tool for JACK2.
+J2SC stands for JACK 2 Simple Configurator and is, as the name says, a configuration tool for JACK2.
+
+![Screenshot](Screenshot.png)
 
 ## Relation to Cadence
 
-j2sc is based on the old Cadence also from me (falkTX), but with everything removed except the JACK configuration part.
+J2SC is based on the old Cadence also from me (falkTX), but with everything removed except the JACK configuration part.
 I abandoned the Cadence as it was not up to my own standards, it was one of the very first projects I started as a way to learn GUI programming.
 
 Over time Cadence small parts have moved into other projects:
@@ -17,4 +19,4 @@ Over time Cadence small parts have moved into other projects:
  - [WineASIO](https://github.com/wineasio/wineasio/) settings panel
 
 The only big remaining part to still be split off was the jack2/jackdbus settings tool.
-Even if the code is not the best, I find this particular tool to be quite useful, so I continue it through the j2sc project.
+Even if the code is not the best, I find this particular tool to be quite useful, so I continue it through the J2SC project.
