@@ -3,7 +3,7 @@
 To install J2SC, simply run as usual:
 
 ```
-make`
+make
 [sudo] make install
 ```
 
