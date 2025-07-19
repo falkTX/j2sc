@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ -e /usr/bin/python3 ]; then
+  PYTHON=/usr/bin/python3
+else
+  PYTHON=python
+fi
+
+INSTALL_PREFIX="X-PREFIX-X"
+exec ${PYTHON} ${INSTALL_PREFIX}/share/j2sc/logs.py "$@"

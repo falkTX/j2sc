@@ -3,13 +3,13 @@
  <class>CadenceMainW</class>
  <widget class="QMainWindow" name="CadenceMainW">
   <property name="windowTitle">
-   <string>Cadence</string>
+   <string>JACK2 Simple Configurator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <spacer name="horizontalSpacer">
-      <property name="orientation">
+      <property name="orientation">JACK2 Simple Configurator
        <enum>Qt::Horizontal</enum>
       </property>
       <property name="sizeHint" stdset="0">
@@ -38,7 +38,7 @@
          </font>
         </property>
         <property name="text">
-         <string>Welcome to Cadence</string>
+         <string>Welcome to J2SC - JACK2 Simple Configurator</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>

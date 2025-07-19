@@ -28,7 +28,7 @@ from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
 
-import ui_settings_jack
+import ui_settings
 
 # ------------------------------------------------------------------------------------------------------------
 # Try Import DBus
@@ -169,7 +169,7 @@ def setDriverParameter(parameter, value, optional=True):
 class JackSettingsW(QDialog):
     def __init__(self, parent):
         QDialog.__init__(self, parent)
-        self.ui = ui_settings_jack.Ui_JackSettingsW()
+        self.ui = ui_settings.Ui_JackSettingsW()
         self.ui.setupUi(self)
 
         # -------------------------------------------------------------
@@ -898,9 +898,15 @@ if __name__ == '__main__':
     import sys
     from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
+    from shared import VERSION
 
     # App initialization
     app = QApplication(sys.argv)
+    app.setApplicationName("J2SC-Settings")
+    app.setApplicationVersion(VERSION)
+    app.setDesktopFileName("j2sc")
+    app.setOrganizationName("falkTX")
+    # app.setWindowIcon(QIcon(":/scalable/jack.svg"))
 
     # Connect to DBus
     if dbus:
@@ -916,7 +922,6 @@ if __name__ == '__main__':
 
     # Show GUI
     gui = JackSettingsW(None)
-    gui.setWindowIcon(QIcon(":/scalable/jack.svg"))
     gui.show()
 
     # App-Loop

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Cadence, JACK utilities
+# JACK2 Simple Configurator
 # Copyright (C) 2010-2025 Filipe Coelho <falktx@falktx.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -19,17 +19,18 @@
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Global)
 
-from PyQt6.QtCore import pyqtSlot, Qt, QSemaphore, QSettings, QThread, QTimer
+from PyQt6.QtCore import pyqtSlot, Qt, QProcess, QSemaphore, QSettings, QThread, QTimer
 from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
 
-import jacksettings
-import ui_cadence
-import ui_cadence_tb_a2j
-import ui_cadence_rwait
-from shared_cadence import *
+from shared import *
+
+import settings
+import ui_j2sc
+import ui_j2sc_tb_a2j
+import ui_j2sc_rwait
 
 # ------------------------------------------------------------------------------------------------------------
 # Try Import DBus
@@ -45,6 +46,81 @@ except:
         haveDBus = True
     except:
         haveDBus = False
+
+# ------------------------------------------------------------------------------------------------------------
+# Get Process list
+
+def getProcList():
+    retProcs = []
+
+    if HAIKU or LINUX or MACOS:
+        process = QProcess()
+        process.start("ps", ["-u", str(os.getuid())])
+        process.waitForFinished()
+
+        processDump = process.readAllStandardOutput().split("\n")
+
+        for i in range(len(processDump)):
+            if (i == 0): continue
+            dumpTest = str(processDump[i], encoding="utf-8").rsplit(":", 1)[-1].split(" ")
+            if len(dumpTest) > 1 and dumpTest[1]:
+                retProcs.append(dumpTest[1])
+
+    else:
+        print("getProcList() - Not supported in this system")
+
+    return retProcs
+
+# ------------------------------------------------------------------------------------------------------------
+# Stop all audio processes, used for force-restart
+
+def waitProcsEnd(procs, tries):
+    for x in range(tries):
+        procsList = getProcList()
+        for proc in procs:
+            if proc in procsList:
+                break
+            else:
+                sleep(0.1)
+        else:
+            break
+
+# ------------------------------------------------------------------------------------------------------------
+# Cleanly close the jack dbus service
+
+def tryCloseJackDBus():
+    try:
+        import dbus
+        bus = dbus.SessionBus()
+        jack = bus.get_object("org.jackaudio.service", "/org/jackaudio/Controller")
+        jack.Exit()
+    except:
+        print("tryCloseJackDBus() failed")
+
+# ------------------------------------------------------------------------------------------------------------
+# Stop all audio processes, used for force-restart
+
+def stopAllAudioProcesses(tryCloseJack = True):
+    if tryCloseJack:
+        tryCloseJackDBus()
+
+    if not (HAIKU or LINUX or MACOS):
+        print("stopAllAudioProcesses() - Not supported in this system")
+        return
+
+    process = QProcess()
+
+    procsTerm = ["a2j", "a2jmidid", "artsd", "jackd", "jackdmp", "knotify4", "lash", "ladishd", "ladiappd", "ladiconfd", "jmcore"]
+    procsKill = ["jackdbus", "pulseaudio"]
+    tries     = 20
+
+    process.start("killall", procsTerm)
+    process.waitForFinished()
+    waitProcsEnd(procsTerm, tries)
+
+    process.start("killall", ["-KILL"] + procsKill)
+    process.waitForFinished()
+    waitProcsEnd(procsKill, tries)
 
 # ---------------------------------------------------------------------
 
@@ -112,7 +188,7 @@ class ForceRestartThread(QThread):
         self.progressChanged.emit(100)
 
 # Force Restart Dialog
-class ForceWaitDialog(QDialog, ui_cadence_rwait.Ui_Dialog):
+class ForceWaitDialog(QDialog, ui_j2sc_rwait.Ui_Dialog):
     def __init__(self, parent):
         QDialog.__init__(self, parent)
         self.setupUi(self)
@@ -141,7 +217,7 @@ class ForceWaitDialog(QDialog, ui_cadence_rwait.Ui_Dialog):
         self.close()
 
 # Main Window
-class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
+class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
     DBusJackServerStartedCallback = pyqtSignal()
     DBusJackServerStoppedCallback = pyqtSignal()
     DBusA2JBridgeStartedCallback = pyqtSignal()
@@ -207,7 +283,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
             try:
                 gDBus.jack     = gDBus.bus.get_object("org.jackaudio.service", "/org/jackaudio/Controller")
                 gDBus.patchbay = dbus.Interface(gDBus.jack, "org.jackaudio.JackPatchbay")
-                jacksettings.initBus(gDBus.bus)
+                settings.initBus(gDBus.bus)
             except:
                 gDBus.jack     = None
                 gDBus.patchbay = None
@@ -223,7 +299,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
 
             else:
                 self.jackStopped()
-                self.label_jack_realtime.setText("Yes" if jacksettings.isRealtime() else "No")
+                self.label_jack_realtime.setText("Yes" if settings.isRealtime() else "No")
         else:
             self.jackStopped()
             self.label_jack_status.setText("Unavailable")
@@ -442,7 +518,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
 
     @pyqtSlot()
     def slot_JackServerConfigure(self):
-        jacksettings.JackSettingsW(self).exec()
+        settings.JackSettingsW(self).exec()
 
     @pyqtSlot()
     def slot_JackServerSwitchMaster(self):
@@ -549,10 +625,11 @@ def runFunctionInMainThread(task):
 if __name__ == '__main__':
     # App initialization
     app = QApplication(sys.argv)
-    app.setApplicationName("Cadence")
+    app.setApplicationName("J2SC")
     app.setApplicationVersion(VERSION)
-    app.setOrganizationName("Cadence")
-    app.setWindowIcon(QIcon(":/scalable/cadence.svg"))
+    app.setDesktopFileName("j2sc")
+    app.setOrganizationName("falkTX")
+    # app.setWindowIcon(QIcon(":/scalable/cadence.svg"))
 
     if haveDBus:
         gDBus.loop = DBusMainLoop(set_as_default=True)

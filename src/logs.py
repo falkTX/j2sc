@@ -16,26 +16,30 @@
 #
 # For a full copy of the GNU General Public License see the COPYING file
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Imports (Global)
 
-from PyQt6.QtCore import pyqtSlot, Qt, QFile, QIODevice, QMutex, QMutexLocker, QSettings, QStringConverter, QTextStream, QThread
-from PyQt6.QtGui import QPalette, QSyntaxHighlighter
+import os
+
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, Qt, QFile, QIODevice, QMutex, QMutexLocker, QSettings, QStringConverter, QTextStream, QThread
+from PyQt6.QtGui import QIcon, QPalette, QSyntaxHighlighter
 from PyQt6.QtWidgets import QDialog
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
 
 import ui_logs
-from shared import *
 
-# ------------------------------------------------------------------------------------------------------------
+from shared import VERSION, setUpSignals
+# from shared import *
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Fix log text output (get rid of terminal colors stuff)
 
 def fixLogText(text):
     return text.replace("[1m[31m", "").replace("[1m[33m", "").replace("[31m", "").replace("[33m", "").replace("[0m", "")
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Syntax Highlighter for JACK
 
 class SyntaxHighlighter_JACK(QSyntaxHighlighter):
@@ -58,7 +62,7 @@ class SyntaxHighlighter_JACK(QSyntaxHighlighter):
         #elif (": New client " in text):
             #self.setFormat(text.find(" New client "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Link))
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Syntax Highlighter for A2J
 
 class SyntaxHighlighter_A2J(QSyntaxHighlighter):
@@ -79,7 +83,7 @@ class SyntaxHighlighter_A2J(QSyntaxHighlighter):
         elif ": port deleted: " in text:
             self.setFormat(text.find(" port deleted: "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.LinkVisited))
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Lock-less file read thread
 
 class LogsReadThread(QThread):
@@ -175,11 +179,11 @@ class LogsReadThread(QThread):
         if self.LOG_FILE_A2J:
             self.fLogFileA2J.close()
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Logs Window
 
 class LogsW(QDialog):
-    LOG_PATH = os.path.join(HOME, ".log")
+    LOG_PATH = os.path.expanduser("~/.log")
 
     LOG_FILE_JACK   = os.path.join(LOG_PATH, "jack", "jackdbus.log")
     LOG_FILE_A2J    = os.path.join(LOG_PATH, "a2j", "a2j.log")
@@ -210,8 +214,8 @@ class LogsW(QDialog):
         # -------------------------------------------------------------
         # Set-up GUI
 
-        self.ui.b_close.setIcon(getIcon("window-close"))
-        self.ui.b_purge.setIcon(getIcon("user-trash"))
+        self.ui.b_close.setIcon(QIcon.fromTheme("window-close"))
+        self.ui.b_purge.setIcon(QIcon.fromTheme("user-trash"))
 
         # -------------------------------------------------------------
         # Check for non-existing logs and remove tabs for those
@@ -303,19 +307,21 @@ class LogsW(QDialog):
 
         QDialog.closeEvent(self, event)
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Allow to use this as a standalone app
 
 if __name__ == '__main__':
     # Additional imports
+    import sys
     from PyQt6.QtWidgets import QApplication
 
     # App initialization
     app = QApplication(sys.argv)
-    app.setApplicationName("Cadence-Logs")
+    app.setApplicationName("J2SC-Logs")
     app.setApplicationVersion(VERSION)
-    app.setOrganizationName("Cadence")
-    app.setWindowIcon(QIcon(":/scalable/cadence.svg"))
+    app.setDesktopFileName("j2sc")
+    app.setOrganizationName("falkTX")
+    # app.setWindowIcon(QIcon(":/scalable/cadence.svg"))
 
     # Show GUI
     gui = LogsW(None)

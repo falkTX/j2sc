@@ -1,20 +1,20 @@
 [Desktop Entry]
-Name=j2sc
-GenericName=j2sc
+Name=J2SC
+GenericName=J2SC
 Comment=JACK2 Simple Configurator
-Exec=cadence
-Icon=cadence
+Exec=j2sc
+Icon=j2sc
 Terminal=false
 Type=Application
 Categories=AudioVideo;AudioEditing;Qt;
 X-Ayatana-Desktop-Shortcuts=JackSettings;Logs;
 
-[JackSettings Shortcut Group]
-Name=JACK Settings
-Exec=cadence-jacksettings
+[Logs Shortcut Group]
+Name=JACK2 Logs
+Exec=j2sc-logs
 TargetEnvironment=Unity
 
-[Logs Shortcut Group]
-Name=Logs
-Exec=cadence-logs
+[Settings Shortcut Group]
+Name=JACK2 Settings
+Exec=j2sc-settings
 TargetEnvironment=Unity
