@@ -178,7 +178,7 @@ class JackSettingsW(QDialog):
         global gJackctl
 
         if gJackctl is None:
-            QTimer.singleShot(0, self, SLOT("slot_closeWithError()"))
+            QTimer.singleShot(0, self.slot_closeWithError)
             return
 
         # -------------------------------------------------------------
@@ -897,7 +897,7 @@ if __name__ == '__main__':
     # Additional imports
     import sys
     from PyQt6.QtWidgets import QApplication
-    from shared import VERSION
+    from shared import VERSION, setUpSignals
 
     # App initialization
     app = QApplication(sys.argv)
@@ -905,6 +905,7 @@ if __name__ == '__main__':
     app.setApplicationVersion(VERSION)
     app.setDesktopFileName("j2sc")
     app.setOrganizationName("falkTX")
+    setUpSignals()
 
     # Connect to DBus
     if dbus:
@@ -920,7 +921,6 @@ if __name__ == '__main__':
 
     # Show GUI
     gui = JackSettingsW(None)
-    setUpSignals(gui)
     gui.show()
 
     # App-Loop

@@ -319,10 +319,10 @@ if __name__ == '__main__':
     app.setApplicationVersion(VERSION)
     app.setDesktopFileName("j2sc")
     app.setOrganizationName("falkTX")
+    setUpSignals()
 
     # Show GUI
     gui = LogsW(None)
-    setUpSignals(gui)
     gui.show()
 
     # App-Loop

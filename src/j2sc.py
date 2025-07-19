@@ -673,6 +673,7 @@ if __name__ == '__main__':
     app.setApplicationVersion(VERSION)
     app.setDesktopFileName("j2sc")
     app.setOrganizationName("falkTX")
+    setUpSignals()
 
     if haveDBus:
         gDBus.loop = DBusMainLoop(set_as_default=True)
@@ -680,7 +681,6 @@ if __name__ == '__main__':
 
     # Show GUI
     gui = CadenceMainW()
-    setUpSignals(gui)
     gui.show()
 
     # App-Loop

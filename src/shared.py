@@ -16,60 +16,26 @@
 #
 # For a full copy of the GNU General Public License see the COPYING file
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Imports (Global)
-
-import os
-import sys
 
 from signal import signal, SIGINT, SIGTERM
 
-from PyQt6.QtCore import pyqtSignal, qWarning
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import QApplication
 
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Set Version
 
-VERSION = "0.9.2"
+VERSION = "0.0.1"
 
-# ------------------------------------------------------------------------------------------------------------
-# Global variables
-
-global gGui
-gGui = None
-
-# ------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------
 # Signal handler
 
-def setUpSignals(self_):
-    global gGui
-
-    if gGui is None:
-        gGui = self_
-
+def setUpSignals():
     signal(SIGINT, signalHandler)
     signal(SIGTERM, signalHandler)
 
-    gGui.SIGTERM.connect(closeWindowHandler)
-
 def signalHandler(sig, frame):
-    global gGui
-
-    if gGui is None:
-        return
-
-    if sig in (SIGINT, SIGTERM):
-        gGui.SIGTERM.emit()
-
-def closeWindowHandler():
-    global gGui
-
-    if gGui is None:
-        return
-
-    gGui.hide()
-    gGui.close()
     QApplication.instance().quit()
 
-    gGui = None
+# ---------------------------------------------------------------------------------------------------------------------
