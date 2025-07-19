@@ -19,13 +19,20 @@
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Global)
 
-from PyQt6.QtCore import pyqtSlot, Qt, QProcess, QSemaphore, QSettings, QThread, QTimer
-from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow
+import os
+import sys
+
+from time import sleep
+
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, Qt, QMetaObject, QProcess, QSemaphore, QSettings, QThread, QTimer
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QDialog, QMainWindow, QMessageBox
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
 
-from shared import *
+from logs import LogsW
+from shared import VERSION, setUpSignals
 
 import settings
 import ui_j2sc
@@ -48,26 +55,27 @@ except:
         haveDBus = False
 
 # ------------------------------------------------------------------------------------------------------------
+# Set Debug mode
+
+DEBUG = bool("-d" in sys.argv or "-debug" in sys.argv or "--debug" in sys.argv)
+
+# ------------------------------------------------------------------------------------------------------------
 # Get Process list
 
 def getProcList():
     retProcs = []
 
-    if HAIKU or LINUX or MACOS:
-        process = QProcess()
-        process.start("ps", ["-u", str(os.getuid())])
-        process.waitForFinished()
+    process = QProcess()
+    process.start("ps", ["-u", str(os.getuid())])
+    process.waitForFinished()
 
-        processDump = process.readAllStandardOutput().split("\n")
+    processDump = process.readAllStandardOutput().split(b"\n")
 
-        for i in range(len(processDump)):
-            if (i == 0): continue
-            dumpTest = str(processDump[i], encoding="utf-8").rsplit(":", 1)[-1].split(" ")
-            if len(dumpTest) > 1 and dumpTest[1]:
-                retProcs.append(dumpTest[1])
-
-    else:
-        print("getProcList() - Not supported in this system")
+    for i in range(len(processDump)):
+        if (i == 0): continue
+        dumpTest = str(processDump[i], encoding="utf-8").rsplit(":", 1)[-1].split(" ")
+        if len(dumpTest) > 1 and dumpTest[1]:
+            retProcs.append(dumpTest[1])
 
     return retProcs
 
@@ -104,10 +112,6 @@ def stopAllAudioProcesses(tryCloseJack = True):
     if tryCloseJack:
         tryCloseJackDBus()
 
-    if not (HAIKU or LINUX or MACOS):
-        print("stopAllAudioProcesses() - Not supported in this system")
-        return
-
     process = QProcess()
 
     procsTerm = ["a2j", "a2jmidid", "artsd", "jackd", "jackdmp", "knotify4", "lash", "ladishd", "ladiappd", "ladiconfd", "jmcore"]
@@ -122,6 +126,36 @@ def stopAllAudioProcesses(tryCloseJack = True):
     process.waitForFinished()
     waitProcsEnd(procsKill, tries)
 
+# ------------------------------------------------------------------------------------------------------------
+# Custom MessageBox
+
+def CustomMessageBox(self_, icon, title, text, extraText="", buttons=QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No, defButton=QMessageBox.StandardButton.No):
+    msgBox = QMessageBox(self_)
+    msgBox.setIcon(icon)
+    msgBox.setWindowTitle(title)
+    msgBox.setText(text)
+    msgBox.setInformativeText(extraText)
+    msgBox.setStandardButtons(buttons)
+    msgBox.setDefaultButton(defButton)
+    return msgBox.exec()
+
+# ------------------------------------------------------------------------------------------------------------
+# Global DBus object
+
+class DBusObject(object):
+    __slots__ = [
+        'loop',
+        'bus',
+        'a2j',
+        'jack',
+    ]
+
+gDBus = DBusObject()
+gDBus.loop = None
+gDBus.bus = None
+gDBus.a2j = None
+gDBus.jack = None
+
 # ---------------------------------------------------------------------
 
 # Wait while JACK restarts
@@ -133,6 +167,9 @@ class ForceRestartThread(QThread):
 
         self.m_wasStarted = False
 
+        self.pendingCall = None
+        self.pendingWaiter = QSemaphore(0)
+
     def wasJackStarted(self):
         return self.m_wasStarted
 
@@ -141,13 +178,17 @@ class ForceRestartThread(QThread):
             gDBus.a2j.set_hw_export(True)
         gDBus.a2j.start()
 
+    def runInMainThread(self, call):
+        self.pendingCall = call
+        self.pendingWaiter.acquire()
+
     def run(self):
         # Not started yet
         self.m_wasStarted = False
         self.progressChanged.emit(0)
 
         # Stop JACK safely first, if possible
-        runFunctionInMainThread(tryCloseJackDBus)
+        self.runInMainThread(tryCloseJackDBus)
         self.progressChanged.emit(20)
 
         # Kill All
@@ -155,13 +196,13 @@ class ForceRestartThread(QThread):
         self.progressChanged.emit(30)
 
         # Connect to jackdbus
-        runFunctionInMainThread(self.parent().DBusReconnect)
+        self.runInMainThread(self.parent().DBusReconnect)
 
         if not gDBus.jack:
             return
 
         for x in range(30):
-            self.progressChanged.emit(30+x*2)
+            self.progressChanged.emit(30 + x * 2)
             procsList = getProcList()
             if "jackdbus" in procsList:
                 break
@@ -171,7 +212,7 @@ class ForceRestartThread(QThread):
         self.progressChanged.emit(90)
 
         # Start it
-        runFunctionInMainThread(gDBus.jack.StartServer)
+        self.runInMainThread(gDBus.jack.StartServer)
         self.progressChanged.emit(93)
 
         # If we made it this far, then JACK is started
@@ -183,7 +224,7 @@ class ForceRestartThread(QThread):
 
         # ALSA-MIDI
         if QSettings().value("A2J/AutoStart", True, type=bool) and gDBus.a2j and not bool(gDBus.a2j.is_started()):
-            runFunctionInMainThread(self.startA2J)
+            self.runInMainThread(self.startA2J)
 
         self.progressChanged.emit(100)
 
@@ -192,13 +233,14 @@ class ForceWaitDialog(QDialog, ui_j2sc_rwait.Ui_Dialog):
     def __init__(self, parent):
         QDialog.__init__(self, parent)
         self.setupUi(self)
-        self.setWindowFlags(Qt.Dialog|Qt.WindowCloseButtonHint)
+        self.setWindowFlags(Qt.WindowType.Dialog|Qt.WindowType.WindowCloseButtonHint)
+
+        self.pendingTimer = self.startTimer(100)
 
         self.rThread = ForceRestartThread(self)
-        self.rThread.start()
-
         self.rThread.progressChanged.connect(self.progressBar.setValue)
         self.rThread.finished.connect(self.slot_rThreadFinished)
+        self.rThread.start()
 
     def DBusReconnect(self):
         self.parent().DBusReconnect()
@@ -212,9 +254,27 @@ class ForceWaitDialog(QDialog, ui_j2sc_rwait.Ui_Dialog):
         else:
             QMessageBox.critical(self, self.tr("Error"), self.tr("Could not start JACK!"))
 
-    def done(self, r):
-        QDialog.done(self, r)
-        self.close()
+    def closeEvent(self, event):
+        self.killTimer(self.pendingTimer)
+
+        if self.rThread.isRunning():
+            self.rThread.terminate()
+
+        QDialog.closeEvent(self, event)
+
+    def timerEvent(self, event):
+        if event.timerId() == self.pendingTimer and self.rThread.pendingCall is not None:
+            try:
+                self.rThread.pendingCall()
+            except:
+                try:
+                    self.rThread.pendingCall()
+                except:
+                    pass
+            self.rThread.pendingCall = None
+            self.rThread.pendingWaiter.release()
+
+        QDialog.timerEvent(self, event)
 
 # Main Window
 class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
@@ -233,20 +293,23 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
 
         self.loadSettings(True)
 
-        self.pix_apply   = QIcon(getIcon("dialog-ok-apply", 16)).pixmap(16, 16)
-        self.pix_cancel  = QIcon(getIcon("dialog-cancel", 16)).pixmap(16, 16)
-        self.pix_error   = QIcon(getIcon("dialog-error", 16)).pixmap(16, 16)
+        self.pix_apply  = QIcon.fromTheme("dialog-ok-apply").pixmap(16, 16)
+        self.pix_cancel = QIcon.fromTheme("dialog-cancel").pixmap(16, 16)
+        self.pix_error  = QIcon.fromTheme("dialog-error").pixmap(16, 16)
 
         self.b_jack_switchmaster.setEnabled(False)
+        self.w_advanced.setVisible(False)
 
         # -------------------------------------------------------------
         # Set-up connections
 
         self.b_jack_start.clicked.connect(self.slot_JackServerStart)
         self.b_jack_stop.clicked.connect(self.slot_JackServerStop)
-        self.b_jack_restart.clicked.connect(self.slot_JackServerForceRestart)
         self.b_jack_configure.clicked.connect(self.slot_JackServerConfigure)
+        self.b_jack_restart.clicked.connect(self.slot_JackServerForceRestart)
+        self.b_logs.clicked.connect(self.slot_showLogs)
         self.b_jack_switchmaster.clicked.connect(self.slot_JackServerSwitchMaster)
+        self.tb_advanced.toggled.connect(self.toolButtonPressed)
 
         self.b_a2j_start.clicked.connect(self.slot_A2JBridgeStart)
         self.b_a2j_stop.clicked.connect(self.slot_A2JBridgeStop)
@@ -266,6 +329,8 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
         self.m_last_xruns    = None
         self.m_last_buffer_size = None
 
+        self.m_logs = None
+
         self.m_timer500  = None
         self.m_timer2000 = self.startTimer(2000)
 
@@ -281,12 +346,10 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
     def DBusReconnect(self):
         if haveDBus:
             try:
-                gDBus.jack     = gDBus.bus.get_object("org.jackaudio.service", "/org/jackaudio/Controller")
-                gDBus.patchbay = dbus.Interface(gDBus.jack, "org.jackaudio.JackPatchbay")
+                gDBus.jack = gDBus.bus.get_object("org.jackaudio.service", "/org/jackaudio/Controller")
                 settings.initBus(gDBus.bus)
             except:
-                gDBus.jack     = None
-                gDBus.patchbay = None
+                gDBus.jack = None
 
             try:
                 gDBus.a2j = dbus.Interface(gDBus.bus.get_object("org.gna.home.a2jmidid", "/"), "org.gna.home.a2jmidid.control")
@@ -299,7 +362,12 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
 
             else:
                 self.jackStopped()
-                self.label_jack_realtime.setText("Yes" if settings.isRealtime() else "No")
+                if settings.isRealtime():
+                    self.label_jack_realtime.setText("Yes")
+                    self.label_jack_realtime_ico.setPixmap(self.pix_apply)
+                else:
+                    self.label_jack_realtime.setText("No")
+                    self.label_jack_realtime_ico.setPixmap(self.pix_cancel)
         else:
             self.jackStopped()
             self.label_jack_status.setText("Unavailable")
@@ -426,7 +494,7 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
         self.b_a2j_start.setEnabled(False)
         self.b_a2j_stop.setEnabled(True)
         if bool(gDBus.a2j.get_hw_export()):
-            self.label_bridge_a2j.setText(self.tr("ALSA MIDI Bridge is running, ports are exported"))
+            self.label_bridge_a2j.setText(self.tr("ALSA MIDI Bridge is running, hardware ports are exported"))
         else :
             self.label_bridge_a2j.setText(self.tr("ALSA MIDI Bridge is running"))
 
@@ -435,36 +503,6 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
         self.b_a2j_start.setEnabled(jackRunning)
         self.b_a2j_stop.setEnabled(False)
         self.label_bridge_a2j.setText(self.tr("ALSA MIDI Bridge is stopped"))
-
-    @pyqtSlot()
-    def func_start_logs(self):
-        self.func_start_tool("cadence-logs")
-
-    def func_start_tool(self, tool):
-        if sys.argv[0].endswith(".py"):
-            if tool == "cadence-logs":
-                tool = "logs"
-            elif tool == "cadence-render":
-                tool = "render"
-
-            python = sys.executable
-            tool  += ".py"
-            base   = sys.argv[0].rsplit("cadence.py", 1)[0]
-
-            if python:
-                python += " "
-
-            cmd = "%s%s%s &" % (python, base, tool)
-
-            print(cmd)
-            os.system(cmd)
-
-        elif sys.argv[0].endswith("/cadence"):
-            base = sys.argv[0].rsplit("/cadence", 1)[0]
-            os.system("%s/%s &" % (base, tool))
-
-        else:
-            os.system("%s &" % tool)
 
     @pyqtSlot()
     def slot_DBusJackServerStartedCallback(self):
@@ -488,7 +526,10 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
         try:
             gDBus.jack.StartServer()
         except:
-            QMessageBox.warning(self, self.tr("Warning"), self.tr("Failed to start JACK, please check the logs for more information."))
+            try:
+                gDBus.jack.StartServer()
+            except:
+                QMessageBox.warning(self, self.tr("Warning"), self.tr("Failed to start JACK, please check the logs for more information."))
 
     @pyqtSlot()
     def slot_JackServerStop(self):
@@ -498,6 +539,10 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
             gDBus.jack.StopServer()
         except:
             QMessageBox.warning(self, self.tr("Warning"), self.tr("Failed to stop JACK, please check the logs for more information."))
+
+    @pyqtSlot()
+    def slot_JackServerConfigure(self):
+        settings.JackSettingsW(self).exec()
 
     @pyqtSlot()
     def slot_JackServerForceRestart(self):
@@ -514,11 +559,13 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
             self.m_timer500 = None
 
         self.saveSettings()
-        ForceWaitDialog(self).exec_()
+        ForceWaitDialog(self).exec()
 
     @pyqtSlot()
-    def slot_JackServerConfigure(self):
-        settings.JackSettingsW(self).exec()
+    def slot_showLogs(self):
+        if self.m_logs is None:
+            self.m_logs = LogsW(None)
+        self.m_logs.show()
 
     @pyqtSlot()
     def slot_JackServerSwitchMaster(self):
@@ -562,6 +609,11 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
     @pyqtSlot()
     def slot_handleCrash_a2j(self):
         pass
+
+    @pyqtSlot(bool)
+    def toolButtonPressed(self, toggled):
+        self.w_advanced.setVisible(toggled)
+        self.tb_advanced.setArrowType(Qt.ArrowType.DownArrow if toggled else Qt.ArrowType.RightArrow)
 
     def saveSettings(self):
         settings = QSettings()
@@ -609,27 +661,18 @@ class CadenceMainW(QMainWindow, ui_j2sc.Ui_CadenceMainW):
     def closeEvent(self, event):
         self.saveSettings()
 
-# ------------------------------------------------------------------------------------------------------------
-
-def runFunctionInMainThread(task):
-    waiter = QSemaphore(1)
-
-    def taskInMainThread():
-        task()
-        waiter.release()
-
-    QTimer.singleShot(0, taskInMainThread)
-    waiter.tryAcquire()
-
 #--------------- main ------------------
 if __name__ == '__main__':
+    # Additional imports
+    from PyQt6.QtWidgets import QApplication
+    from shared import VERSION, setUpSignals
+
     # App initialization
     app = QApplication(sys.argv)
     app.setApplicationName("J2SC")
     app.setApplicationVersion(VERSION)
     app.setDesktopFileName("j2sc")
     app.setOrganizationName("falkTX")
-    # app.setWindowIcon(QIcon(":/scalable/cadence.svg"))
 
     if haveDBus:
         gDBus.loop = DBusMainLoop(set_as_default=True)
@@ -637,11 +680,8 @@ if __name__ == '__main__':
 
     # Show GUI
     gui = CadenceMainW()
-
-    # Set-up custom signal handling
     setUpSignals(gui)
-
     gui.show()
 
-    # Exit properly
+    # App-Loop
     sys.exit(app.exec())

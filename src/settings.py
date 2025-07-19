@@ -896,7 +896,6 @@ class JackSettingsW(QDialog):
 if __name__ == '__main__':
     # Additional imports
     import sys
-    from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
     from shared import VERSION
 
@@ -906,7 +905,6 @@ if __name__ == '__main__':
     app.setApplicationVersion(VERSION)
     app.setDesktopFileName("j2sc")
     app.setOrganizationName("falkTX")
-    # app.setWindowIcon(QIcon(":/scalable/jack.svg"))
 
     # Connect to DBus
     if dbus:
@@ -922,6 +920,7 @@ if __name__ == '__main__':
 
     # Show GUI
     gui = JackSettingsW(None)
+    setUpSignals(gui)
     gui.show()
 
     # App-Loop

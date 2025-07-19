@@ -30,9 +30,6 @@ from PyQt6.QtWidgets import QDialog
 
 import ui_logs
 
-from shared import VERSION, setUpSignals
-# from shared import *
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Fix log text output (get rid of terminal colors stuff)
 
@@ -314,6 +311,7 @@ if __name__ == '__main__':
     # Additional imports
     import sys
     from PyQt6.QtWidgets import QApplication
+    from shared import VERSION, setUpSignals
 
     # App initialization
     app = QApplication(sys.argv)
@@ -321,13 +319,11 @@ if __name__ == '__main__':
     app.setApplicationVersion(VERSION)
     app.setDesktopFileName("j2sc")
     app.setOrganizationName("falkTX")
-    # app.setWindowIcon(QIcon(":/scalable/cadence.svg"))
 
     # Show GUI
     gui = LogsW(None)
-    gui.show()
-
     setUpSignals(gui)
+    gui.show()
 
     # App-Loop
     sys.exit(app.exec())
