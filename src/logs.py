@@ -286,11 +286,11 @@ class LogsW(QDialog):
         self.ui.pte_a2j.clear()
 
     def loadSettings(self):
-        settings = QSettings("Cadence", "Cadence-Logs")
+        settings = QSettings("falkTX", "J2SC-Logs")
         self.restoreGeometry(settings.value("Geometry", b""))
 
     def saveSettings(self):
-        settings = QSettings("Cadence", "Cadence-Logs")
+        settings = QSettings("falkTX", "J2SC-Logs")
         settings.setValue("Geometry", self.saveGeometry())
 
     def closeEvent(self, event):
