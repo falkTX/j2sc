@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Common/Shared code for Cadence
-# Copyright (C) 2012-2018 Filipe Coelho <falktx@falktx.com>
+# Copyright (C) 2012-2025 Filipe Coelho <falktx@falktx.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,17 +21,12 @@
 
 from time import sleep
 
-from PyQt5.QtCore import QProcess, QSettings
+from PyQt6.QtCore import QProcess
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
 
 from shared import *
-
-# ------------------------------------------------------------------------------------------------------------
-# Global Settings
-
-GlobalSettings = QSettings("Cadence", "GlobalSettings")
 
 # ------------------------------------------------------------------------------------------------------------
 # Get Process list

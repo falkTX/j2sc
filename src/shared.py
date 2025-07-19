@@ -22,9 +22,9 @@
 import os
 import sys
 
-from PyQt5.QtCore import pyqtSignal, qWarning
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QFileDialog, QMessageBox
+from PyQt6.QtCore import pyqtSignal, qWarning
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 # ------------------------------------------------------------------------------------------------------------
 # Set Platform
@@ -133,7 +133,7 @@ def getIcon(icon, size=16):
 # ------------------------------------------------------------------------------------------------------------
 # Custom MessageBox
 
-def CustomMessageBox(self_, icon, title, text, extraText="", buttons=QMessageBox.Yes|QMessageBox.No, defButton=QMessageBox.No):
+def CustomMessageBox(self_, icon, title, text, extraText="", buttons=QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No, defButton=QMessageBox.StandardButton.No):
     msgBox = QMessageBox(self_)
     msgBox.setIcon(icon)
     msgBox.setWindowTitle(title)

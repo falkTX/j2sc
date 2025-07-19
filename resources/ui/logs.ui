@@ -71,58 +71,6 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tab_lash">
-      <attribute name="title">
-       <string>LASH</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_5">
-       <item>
-        <widget class="QPlainTextEdit" name="pte_lash">
-         <property name="verticalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOn</enum>
-         </property>
-         <property name="horizontalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOn</enum>
-         </property>
-         <property name="lineWrapMode">
-          <enum>QPlainTextEdit::NoWrap</enum>
-         </property>
-         <property name="plainText">
-          <string>Loading...</string>
-         </property>
-         <property name="textInteractionFlags">
-          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_ladish">
-      <attribute name="title">
-       <string>LADISH</string>
-      </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <item>
-        <widget class="QPlainTextEdit" name="pte_ladish">
-         <property name="verticalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOn</enum>
-         </property>
-         <property name="horizontalScrollBarPolicy">
-          <enum>Qt::ScrollBarAlwaysOn</enum>
-         </property>
-         <property name="lineWrapMode">
-          <enum>QPlainTextEdit::NoWrap</enum>
-         </property>
-         <property name="plainText">
-          <string>Loading...</string>
-         </property>
-         <property name="textInteractionFlags">
-          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
     </widget>
    </item>
    <item row="1" column="0" colspan="4">
@@ -137,20 +85,12 @@
      <property name="text">
       <string>Purge all logs</string>
      </property>
-     <property name="icon">
-      <iconset resource="../../resources/resources.qrc">
-       <normaloff>:/16x16/edit-delete.png</normaloff>:/16x16/edit-delete.png</iconset>
-     </property>
     </widget>
    </item>
    <item row="2" column="3">
     <widget class="QPushButton" name="b_close">
      <property name="text">
       <string>Close</string>
-     </property>
-     <property name="icon">
-      <iconset resource="../../resources/resources.qrc">
-       <normaloff>:/16x16/window-close.png</normaloff>:/16x16/window-close.png</iconset>
      </property>
     </widget>
    </item>
@@ -169,15 +109,12 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../resources/resources.qrc"/>
- </resources>
  <connections>
   <connection>
    <sender>b_close</sender>
    <signal>clicked()</signal>
    <receiver>LogsW</receiver>
-   <slot>accept()</slot>
+   <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>665</x>

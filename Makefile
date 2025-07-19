@@ -1,34 +1,32 @@
 #!/usr/bin/make -f
-# Makefile for Cadence #
-# -------------------- #
+# Makefile for j2sc #
+# ----------------- #
 # Created by falkTX
 #
 
 PREFIX  = /usr/local
 DESTDIR =
 
-LINK   = ln -s
-PYUIC ?= pyuic5
-PYRCC ?= pyrcc5
+# -----------------------------------------------------------------------------------------------------------------------------------------
 
-# Detect X11 rules dir
-ifeq "$(wildcard /etc/X11/Xsession.d/ )" ""
-	X11_RC_DIR = $(DESTDIR)/etc/X11/xinit/xinitrc.d/
-else
-	X11_RC_DIR = $(DESTDIR)/etc/X11/Xsession.d/
+PYUIC5 ?= $(shell command -v pyuic5 2>/dev/null)
+PYUIC6 ?= $(shell command -v pyuic6 2>/dev/null)
+
+ifneq ($(PYUIC6),)
+FRONTEND_TYPE = 6
+else ifneq ($(PYUIC5)$(PYRCC5),)
+FRONTEND_TYPE = 5
+endif
+
+ifeq ($(FRONTEND_TYPE),5)
+PYUIC ?= $(PYUIC5)
+else ifeq ($(FRONTEND_TYPE),6)
+PYUIC ?= $(PYUIC6)
 endif
 
 # -----------------------------------------------------------------------------------------------------------------------------------------
 
-all: RES UI
-
-# -----------------------------------------------------------------------------------------------------------------------------------------
-# Resources
-
-RES: src/resources_rc.py
-
-src/resources_rc.py: resources/resources.qrc
-	$(PYRCC) $< -o $@
+all: UI
 
 # -----------------------------------------------------------------------------------------------------------------------------------------
 # UI code
@@ -48,18 +46,12 @@ src/ui_%.py: resources/ui/%.ui
 # -----------------------------------------------------------------------------------------------------------------------------------------
 
 clean:
-	rm -f *~ src/*~ src/*.pyc src/ui_*.py src/resources_rc.py
-
-# -----------------------------------------------------------------------------------------------------------------------------------------
-
-debug:
-	$(MAKE) DEBUG=true
+	rm -f *~ src/*~ src/*.pyc src/ui_*.py
 
 # -----------------------------------------------------------------------------------------------------------------------------------------
 
 install:
 	# Create directories
-	install -d $(DESTDIR)/etc/xdg/autostart/
 	install -d $(DESTDIR)$(PREFIX)/bin/
 	install -d $(DESTDIR)$(PREFIX)/share/applications/
 	install -d $(DESTDIR)$(PREFIX)/share/icons/hicolor/16x16/apps/
@@ -70,20 +62,17 @@ install:
 	install -d $(DESTDIR)$(PREFIX)/share/cadence/
 	install -d $(DESTDIR)$(PREFIX)/share/cadence/src/
 	install -d $(DESTDIR)$(PREFIX)/share/cadence/icons/
-	install -d $(X11_RC_DIR)
 
 	# Install script files and binaries
 	install -m 755 \
 		data/cadence \
 		data/cadence-jacksettings \
 		data/cadence-logs \
-		data/cadence-render \
 		data/cadence-session-start \
 		$(DESTDIR)$(PREFIX)/bin/
 
 	# Install desktop files
-	install -m 644 data/autostart/*.desktop $(DESTDIR)/etc/xdg/autostart/
-	install -m 644 data/*.desktop           $(DESTDIR)$(PREFIX)/share/applications/
+	install -m 644 data/*.desktop $(DESTDIR)$(PREFIX)/share/applications/
 
 	# Install icons
 	install -m 644 resources/16x16/cadence.png $(DESTDIR)$(PREFIX)/share/icons/hicolor/16x16/apps/
@@ -95,22 +84,11 @@ install:
 	# Install main code
 	install -m 644 src/*.py $(DESTDIR)$(PREFIX)/share/cadence/src/
 
-	# Install addtional stuff for Cadence
-	install -m 755 data/61-cadence-session-inject.sh $(X11_RC_DIR)
-
 	# Adjust PREFIX value in script files
 	sed -i "s?X-PREFIX-X?$(PREFIX)?" \
 		$(DESTDIR)$(PREFIX)/bin/cadence \
 		$(DESTDIR)$(PREFIX)/bin/cadence-jacksettings \
-		$(DESTDIR)$(PREFIX)/bin/cadence-logs \
-		$(DESTDIR)$(PREFIX)/bin/cadence-session-start \
-		$(X11_RC_DIR)/61-cadence-session-inject.sh
-
-	# Delete old scripts
-	rm -f $(X11_RC_DIR)/21cadence-session-inject
-	rm -f $(X11_RC_DIR)/61cadence-session-inject
-	rm -f $(X11_RC_DIR)/70cadence-plugin-paths
-	rm -f $(X11_RC_DIR)/99cadence-session-start
+		$(DESTDIR)$(PREFIX)/bin/cadence-logs
 
 # -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -119,12 +97,4 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/share/applications/cadence.desktop
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/*/apps/cadence.png
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/cadence.svg
-	rm -f $(DESTDIR)/etc/xdg/autostart/cadence-session-start.desktop
-	rm -f $(X11_RC_DIR)/61-cadence-session-inject.sh
 	rm -rf $(DESTDIR)$(PREFIX)/share/cadence/
-
-	# Delete old scripts
-	rm -f $(X11_RC_DIR)/21cadence-session-inject
-	rm -f $(X11_RC_DIR)/61cadence-session-inject
-	rm -f $(X11_RC_DIR)/70cadence-plugin-paths
-	rm -f $(X11_RC_DIR)/99cadence-session-start

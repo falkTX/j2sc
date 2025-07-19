@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # JACK Settings Dialog
-# Copyright (C) 2010-2018 Filipe Coelho <falktx@falktx.com>
+# Copyright (C) 2010-2025 Filipe Coelho <falktx@falktx.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,16 +19,11 @@
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Global)
 
-from sys import platform, version_info
+from subprocess import getoutput
 
-if True:
-    from PyQt5.QtCore import pyqtSlot, Qt, QSettings, QTimer
-    from PyQt5.QtGui import QFontMetrics
-    from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
-else:
-    from PyQt4.QtCore import pyqtSlot, Qt, QSettings, QTimer
-    from PyQt4.QtGui import QFontMetrics
-    from PyQt4.QtGui import QDialog, QDialogButtonBox, QMessageBox
+from PyQt6.QtCore import pyqtSlot, Qt, QSettings, QTimer
+from PyQt6.QtGui import QFontMetrics
+from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QMessageBox
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
@@ -56,19 +51,6 @@ gResetNeeded = False
 JACK_TIMER_SYSTEM_CLOCK  = 0
 JACK_TIMER_CYCLE_COUNTER = 1
 JACK_TIMER_HPET          = 2
-
-# ------------------------------------------------------------------------------------------------------------
-# Set Platform
-
-if "linux" in platform:
-    LINUX = True
-
-    if version_info >= (3, 0):
-        from subprocess import getoutput
-    else:
-        from commands import getoutput
-else:
-    LINUX = False
 
 # ------------------------------------------------------------------------------------------------------------
 # Init DBus
@@ -208,10 +190,10 @@ class JackSettingsW(QDialog):
 
         for i in range(self.ui.obj_server_driver.rowCount()):
             item = self.ui.obj_server_driver.item(i, 0)
-            item.setTextAlignment(Qt.AlignCenter)
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
             itexText  = item.text()
-            itemWidth = fontMetris.width(itexText)+25
+            itemWidth = fontMetris.boundingRect(itexText).width() + 50
 
             if itemWidth > maxWidth:
                 maxWidth = itemWidth
@@ -226,7 +208,7 @@ class JackSettingsW(QDialog):
         # Set-up connections
 
         self.accepted.connect(self.slot_saveJackSettings)
-        self.ui.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.slot_resetJackSettings)
+        self.ui.buttonBox.button(QDialogButtonBox.StandardButton.Reset).clicked.connect(self.slot_resetJackSettings)
 
         self.ui.obj_driver_duplex.clicked.connect(self.slot_checkDuplexSelection)
         self.ui.obj_server_driver.currentCellChanged.connect(self.slot_checkDriverSelection)
@@ -276,10 +258,6 @@ class JackSettingsW(QDialog):
         self.ui.obj_server_replace_registry.setEnabled(engineHasFeature("replace-registry"))
         self.ui.obj_server_sync.setEnabled(engineHasFeature("sync"))
         self.ui.obj_server_self_connect_mode.setEnabled(engineHasFeature("self-connect-mode"))
-
-        # Disable clock-source if not on Linux
-        if not LINUX:
-            self.ui.obj_server_clock_source.setEnabled(False)
 
     # -----------------------------------------------------------------
     # Server calls
@@ -776,7 +754,7 @@ class JackSettingsW(QDialog):
         # Add device list
         self.ui.obj_driver_device.clear()
         if driverHasFeature("device"):
-            if LINUX and self.fDriverName == "alsa":
+            if self.fDriverName == "alsa":
                 dev_list = self.getAlsaDeviceList()
                 for dev in dev_list:
                     self.ui.obj_driver_device.addItem(dev)
@@ -793,18 +771,12 @@ class JackSettingsW(QDialog):
             self.ui.obj_driver_capture.addItem("none")
             self.ui.obj_driver_playback.addItem("none")
 
-            if LINUX:
-                dev_list_playback = self.getAlsaDeviceList(playback=True)
-                dev_list_record = self.getAlsaDeviceList(playback=False)
-                for dev in dev_list_playback:
-                    self.ui.obj_driver_playback.addItem(dev)
-                for dev in dev_list_record:
-                    self.ui.obj_driver_capture.addItem(dev)
-            else:
-                dev_list = gJackctl.GetParameterConstraint(["driver", "device"])[3]
-                for i in range(len(dev_list)):
-                    self.ui.obj_driver_capture.addItem(dev_list[i][0] + " [" + dev_list[i][1] + "]")
-                    self.ui.obj_driver_playback.addItem(dev_list[i][0] + " [" + dev_list[i][1] + "]")
+            dev_list_playback = self.getAlsaDeviceList(playback=True)
+            dev_list_record = self.getAlsaDeviceList(playback=False)
+            for dev in dev_list_playback:
+                self.ui.obj_driver_playback.addItem(dev)
+            for dev in dev_list_record:
+                self.ui.obj_driver_capture.addItem(dev)
 
         elif self.fDriverName == "dummy":
             for i in range(16):
@@ -918,22 +890,17 @@ class JackSettingsW(QDialog):
         self.saveSettings()
         QDialog.closeEvent(self, event)
 
-    def done(self, r):
-        QDialog.done(self, r)
-        self.close()
-
 # ------------------------------------------------------------------------------------------------------------
 # Allow to use this as a standalone app
 
 if __name__ == '__main__':
     # Additional imports
-    import resources_rc
-    from sys import argv as sys_argv, exit as sys_exit
-    from PyQt5.QtGui import QIcon
-    from PyQt5.QtWidgets import QApplication
+    import sys
+    from PyQt6.QtGui import QIcon
+    from PyQt6.QtWidgets import QApplication
 
     # App initialization
-    app = QApplication(sys_argv)
+    app = QApplication(sys.argv)
 
     # Connect to DBus
     if dbus:
@@ -953,4 +920,4 @@ if __name__ == '__main__':
     gui.show()
 
     # App-Loop
-    sys_exit(app.exec_())
+    sys.exit(app.exec())

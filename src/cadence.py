@@ -19,14 +19,13 @@
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Global)
 
-from PyQt5.QtCore import pyqtSlot, Qt, QFileSystemWatcher, QSemaphore, QThread, QTimer
-from PyQt5.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QMainWindow, QSizePolicy
+from PyQt6.QtCore import pyqtSlot, Qt, QSemaphore, QSettings, QThread, QTimer
+from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
 
 import jacksettings
-import systray
 import ui_cadence
 import ui_cadence_tb_a2j
 import ui_cadence_rwait
@@ -62,7 +61,7 @@ class ForceRestartThread(QThread):
         return self.m_wasStarted
 
     def startA2J(self):
-        if not gDBus.a2j.get_hw_export() and GlobalSettings.value("A2J/AutoExport", True, type=bool):
+        if not gDBus.a2j.get_hw_export() and QSettings().value("A2J/AutoExport", True, type=bool):
             gDBus.a2j.set_hw_export(True)
         gDBus.a2j.start()
 
@@ -107,7 +106,7 @@ class ForceRestartThread(QThread):
         self.progressChanged.emit(94)
 
         # ALSA-MIDI
-        if GlobalSettings.value("A2J/AutoStart", True, type=bool) and gDBus.a2j and not bool(gDBus.a2j.is_started()):
+        if QSettings().value("A2J/AutoStart", True, type=bool) and gDBus.a2j and not bool(gDBus.a2j.is_started()):
             runFunctionInMainThread(self.startA2J)
 
         self.progressChanged.emit(100)
@@ -156,7 +155,6 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         QMainWindow.__init__(self, parent)
         self.setupUi(self)
 
-        self.settings = QSettings("Cadence", "Cadence")
         self.loadSettings(True)
 
         self.pix_apply   = QIcon(getIcon("dialog-ok-apply", 16)).pixmap(16, 16)
@@ -164,42 +162,6 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         self.pix_error   = QIcon(getIcon("dialog-error", 16)).pixmap(16, 16)
 
         self.b_jack_switchmaster.setEnabled(False)
-
-        # -------------------------------------------------------------
-        # Set-up systray
-
-        self.systray = systray.GlobalSysTray(self, "Cadence", "cadence")
-
-        if haveDBus:
-            self.systray.addAction("jack_start", self.tr("Start JACK"))
-            self.systray.addAction("jack_stop", self.tr("Stop JACK"))
-            self.systray.addAction("jack_configure", self.tr("Configure JACK"))
-            self.systray.addSeparator("sep1")
-
-            self.systray.addMenu("a2j", self.tr("ALSA MIDI Bridge"))
-            self.systray.addMenuAction("a2j", "a2j_start", self.tr("Start"))
-            self.systray.addMenuAction("a2j", "a2j_stop", self.tr("Stop"))
-
-            self.systray.setActionIcon("jack_start", "media-playback-start")
-            self.systray.setActionIcon("jack_stop", "media-playback-stop")
-            self.systray.setActionIcon("jack_configure", "configure")
-            self.systray.setActionIcon("a2j_start", "media-playback-start")
-            self.systray.setActionIcon("a2j_stop", "media-playback-stop")
-
-            self.systray.connect("jack_start", self.slot_JackServerStart)
-            self.systray.connect("jack_stop", self.slot_JackServerStop)
-            self.systray.connect("jack_configure", self.slot_JackServerConfigure)
-            self.systray.connect("a2j_start", self.slot_A2JBridgeStart)
-            self.systray.connect("a2j_stop", self.slot_A2JBridgeStop)
-
-        self.systray.addMenu("tools", self.tr("Tools"))
-        self.systray.addMenuAction("tools", "app_logs", "Logs")
-        self.systray.addSeparator("sep2")
-
-        self.systray.connect("app_logs", self.func_start_logs)
-
-        self.systray.setToolTip("Cadence")
-        self.systray.show()
 
         # -------------------------------------------------------------
         # Set-up connections
@@ -290,11 +252,11 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         else:
             self.toolBox_alsamidi.setEnabled(False)
             self.cb_a2j_autostart.setChecked(False)
+            self.cb_a2j_autoexport.blockSignals(True)
             self.cb_a2j_autoexport.setChecked(False)
+            self.cb_a2j_autoexport.blockSignals(False)
             self.label_bridge_a2j.setText("ALSA MIDI Bridge is not installed")
-            self.settings.setValue("A2J/AutoStart", False)
-
-        self.updateSystrayTooltip()
+            QSettings().setValue("A2J/AutoStart", False)
 
     def DBusSignalReceiver(self, *args, **kwds):
         if kwds['interface'] == "org.freedesktop.DBus" and kwds['path'] == "/org/freedesktop/DBus" and kwds['member'] == "NameOwnerChanged":
@@ -329,8 +291,6 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         self.b_jack_start.setEnabled(False)
         self.b_jack_stop.setEnabled(True)
         self.b_jack_switchmaster.setEnabled(True)
-        self.systray.setActionEnabled("jack_start", False)
-        self.systray.setActionEnabled("jack_stop", True)
 
         self.label_jack_status.setText("Started")
         self.label_jack_status_ico.setPixmap(self.pix_apply)
@@ -352,14 +312,14 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
 
         if gDBus.a2j and not gDBus.a2j.is_started():
             portsExported = bool(gDBus.a2j.get_hw_export())
-            if GlobalSettings.value("A2J/AutoStart", True, type=bool):
-                if not portsExported and GlobalSettings.value("A2J/AutoExport", True, type=bool):
+            settings = QSettings()
+            if settings.value("A2J/AutoStart", True, type=bool):
+                if not portsExported and settings.value("A2J/AutoExport", True, type=bool):
                     gDBus.a2j.set_hw_export(True)
                     portsExported = True
                 gDBus.a2j.start()
             else:
                 self.b_a2j_start.setEnabled(True)
-                self.systray.setActionEnabled("a2j_start", True)
 
     def jackStopped(self):
         if self.m_timer500:
@@ -374,10 +334,6 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         self.b_jack_stop.setEnabled(False)
         self.b_jack_switchmaster.setEnabled(False)
 
-        if haveDBus:
-            self.systray.setActionEnabled("jack_start", True)
-            self.systray.setActionEnabled("jack_stop", False)
-
         self.label_jack_status.setText("Stopped")
         self.label_jack_status_ico.setPixmap(self.pix_cancel)
 
@@ -389,13 +345,10 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
 
         if gDBus.a2j:
             self.b_a2j_start.setEnabled(False)
-            self.systray.setActionEnabled("a2j_start", False)
 
     def a2jStarted(self):
         self.b_a2j_start.setEnabled(False)
         self.b_a2j_stop.setEnabled(True)
-        self.systray.setActionEnabled("a2j_start", False)
-        self.systray.setActionEnabled("a2j_stop", True)
         if bool(gDBus.a2j.get_hw_export()):
             self.label_bridge_a2j.setText(self.tr("ALSA MIDI Bridge is running, ports are exported"))
         else :
@@ -405,21 +358,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         jackRunning = bool(gDBus.jack and gDBus.jack.IsStarted())
         self.b_a2j_start.setEnabled(jackRunning)
         self.b_a2j_stop.setEnabled(False)
-        self.systray.setActionEnabled("a2j_start", jackRunning)
-        self.systray.setActionEnabled("a2j_stop", False)
         self.label_bridge_a2j.setText(self.tr("ALSA MIDI Bridge is stopped"))
-
-    def updateSystrayTooltip(self):
-        systrayText  = "Cadence\n"
-        systrayText += "%s: %s\n" % (self.tr("JACK Status"), self.label_jack_status.text())
-        systrayText += "%s: %s\n" % (self.tr("Realtime"), self.label_jack_realtime.text())
-        systrayText += "%s: %s\n" % (self.tr("DSP Load"), self.label_jack_dsp.text())
-        systrayText += "%s: %s\n" % (self.tr("Xruns"), self.label_jack_xruns.text())
-        systrayText += "%s: %s\n" % (self.tr("Buffer Size"), self.label_jack_bfsize.text())
-        systrayText += "%s: %s\n" % (self.tr("Sample Rate"), self.label_jack_srate.text())
-        systrayText += "%s: %s" % (self.tr("Block Latency"), self.label_jack_latency.text())
-
-        self.systray.setToolTip(systrayText)
 
     @pyqtSlot()
     def func_start_logs(self):
@@ -487,11 +426,11 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
     @pyqtSlot()
     def slot_JackServerForceRestart(self):
         if gDBus.jack.IsStarted():
-            ask = CustomMessageBox(self, QMessageBox.Warning, self.tr("Warning"),
+            ask = CustomMessageBox(self, QMessageBox.Icon.Warning, self.tr("Warning"),
                                    self.tr("This will force kill all JACK applications!<br>Make sure to save your projects before continue."),
                                    self.tr("Are you sure you want to force the restart of JACK?"))
 
-            if ask != QMessageBox.Yes:
+            if ask != QMessageBox.StandardButton.Yes:
                 return
 
         if self.m_timer500:
@@ -503,9 +442,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
 
     @pyqtSlot()
     def slot_JackServerConfigure(self):
-        jacksettingsW = jacksettings.JackSettingsW(self)
-        jacksettingsW.exec_()
-        del jacksettingsW
+        jacksettings.JackSettingsW(self).exec()
 
     @pyqtSlot()
     def slot_JackServerSwitchMaster(self):
@@ -551,39 +488,33 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         pass
 
     def saveSettings(self):
-        self.settings.setValue("Geometry", self.saveGeometry())
-
-        GlobalSettings.setValue("JACK/AutoStart", self.cb_jack_autostart.isChecked())
-        GlobalSettings.setValue("A2J/AutoStart", self.cb_a2j_autostart.isChecked())
-        GlobalSettings.setValue("A2J/AutoExport", self.cb_a2j_autoexport.isChecked())
+        settings = QSettings()
+        settings.setValue("Geometry", self.saveGeometry())
+        settings.setValue("A2J/AutoStart", self.cb_a2j_autostart.isChecked())
+        settings.setValue("A2J/AutoExport", self.cb_a2j_autoexport.isChecked())
 
     def loadSettings(self, geometry):
-        if geometry:
-            self.restoreGeometry(self.settings.value("Geometry", b""))
+        settings = QSettings()
 
-        self.cb_jack_autostart.setChecked(GlobalSettings.value("JACK/AutoStart", False, type=bool))
-        self.cb_a2j_autostart.setChecked(GlobalSettings.value("A2J/AutoStart", True, type=bool))
-        self.cb_a2j_autoexport.setChecked(GlobalSettings.value("A2J/AutoExport", True, type=bool))
+        if geometry:
+            self.restoreGeometry(settings.value("Geometry", b""))
+
+        self.cb_a2j_autostart.setChecked(settings.value("A2J/AutoStart", True, type=bool))
+        self.cb_a2j_autoexport.setChecked(settings.value("A2J/AutoExport", True, type=bool))
 
     def timerEvent(self, event):
         if event.timerId() == self.m_timer500:
             if gDBus.jack and gDBus.jack.IsStarted() and self.m_last_dsp_load != None:
                 next_dsp_load = gDBus.jack.GetLoad()
                 next_xruns    = int(gDBus.jack.GetXruns())
-                needUpdateTip = False
 
                 if self.m_last_dsp_load != next_dsp_load:
                     self.m_last_dsp_load = next_dsp_load
                     self.label_jack_dsp.setText("%.2f%%" % self.m_last_dsp_load)
-                    needUpdateTip = True
 
                 if self.m_last_xruns != next_xruns:
                     self.m_last_xruns = next_xruns
                     self.label_jack_xruns.setText(str(self.m_last_xruns))
-                    needUpdateTip = True
-
-                if needUpdateTip:
-                    self.updateSystrayTooltip()
 
         elif event.timerId() == self.m_timer2000:
             if gDBus.jack and gDBus.jack.IsStarted() and self.m_last_buffer_size != None:
@@ -601,7 +532,6 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
 
     def closeEvent(self, event):
         self.saveSettings()
-        self.systray.handleQtCloseEvent(event)
 
 # ------------------------------------------------------------------------------------------------------------
 
@@ -634,12 +564,7 @@ if __name__ == '__main__':
     # Set-up custom signal handling
     setUpSignals(gui)
 
-    if "--minimized" in app.arguments():
-        gui.hide()
-        gui.systray.setActionText("show", gui.tr("Restore"))
-        app.setQuitOnLastWindowClosed(False)
-    else:
-        gui.show()
+    gui.show()
 
     # Exit properly
-    sys.exit(gui.systray.exec_(app))
+    sys.exit(app.exec())

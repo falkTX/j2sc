@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# JACK, A2J, LASH and LADISH Logs Viewer
-# Copyright (C) 2011-2018 Filipe Coelho <falktx@falktx.com>
+# JACK and A2J Logs Viewer
+# Copyright (C) 2011-2025 Filipe Coelho <falktx@falktx.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,14 +19,9 @@
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Global)
 
-if True:
-    from PyQt5.QtCore import pyqtSlot, Qt, QFile, QIODevice, QMutex, QMutexLocker, QTextStream, QThread, QSettings
-    from PyQt5.QtGui import QPalette, QSyntaxHighlighter
-    from PyQt5.QtWidgets import QDialog
-else:
-    from PyQt4.QtCore import pyqtSlot, Qt, QFile, QIODevice, QMutex, QMutexLocker, QTextStream, QThread, QSettings
-    from PyQt4.QtGui import QPalette, QSyntaxHighlighter
-    from PyQt4.QtGui import QDialog
+from PyQt6.QtCore import pyqtSlot, Qt, QFile, QIODevice, QMutex, QMutexLocker, QSettings, QStringConverter, QTextStream, QThread
+from PyQt6.QtGui import QPalette, QSyntaxHighlighter
+from PyQt6.QtWidgets import QDialog
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Custom Stuff)
@@ -51,17 +46,17 @@ class SyntaxHighlighter_JACK(QSyntaxHighlighter):
 
     def highlightBlock(self, text):
         if ": ERROR: " in text:
-            self.setFormat(text.find(" ERROR: "), len(text), Qt.red)
+            self.setFormat(text.find(" ERROR: "), len(text), Qt.GlobalColor.red)
         elif ": WARNING: " in text:
-            self.setFormat(text.find(" WARNING: "), len(text), Qt.darkRed)
+            self.setFormat(text.find(" WARNING: "), len(text), Qt.GlobalColor.darkRed)
         elif ": ------------------" in text:
-            self.setFormat(text.find(" ------------------"), len(text), self.fPalette.color(QPalette.Active, QPalette.Mid))
+            self.setFormat(text.find(" ------------------"), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Mid))
         elif ": Connecting " in text:
-            self.setFormat(text.find(" Connecting "), len(text), self.fPalette.color(QPalette.Active, QPalette.Link))
+            self.setFormat(text.find(" Connecting "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Link))
         elif ": Disconnecting " in text:
-            self.setFormat(text.find(" Disconnecting "), len(text), self.fPalette.color(QPalette.Active, QPalette.LinkVisited))
+            self.setFormat(text.find(" Disconnecting "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.LinkVisited))
         #elif (": New client " in text):
-            #self.setFormat(text.find(" New client "), len(text), self.fPalette.color(QPalette.Active, QPalette.Link))
+            #self.setFormat(text.find(" New client "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Link))
 
 # ------------------------------------------------------------------------------------------------------------
 # Syntax Highlighter for A2J
@@ -74,49 +69,15 @@ class SyntaxHighlighter_A2J(QSyntaxHighlighter):
 
     def highlightBlock(self, text):
         if ": error: " in text:
-            self.setFormat(text.find(" error: "), len(text), Qt.red)
+            self.setFormat(text.find(" error: "), len(text), Qt.GlobalColor.red)
         elif ": WARNING: " in text:
-            self.setFormat(text.find(" WARNING: "), len(text), Qt.darkRed)
+            self.setFormat(text.find(" WARNING: "), len(text), Qt.GlobalColor.darkRed)
         elif ": ----------------------------" in text:
-            self.setFormat(text.find("----------------------------"), len(text), self.fPalette.color(QPalette.Active, QPalette.Mid))
+            self.setFormat(text.find("----------------------------"), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Mid))
         elif ": port created: " in text:
-            self.setFormat(text.find(" port created: "), len(text), self.fPalette.color(QPalette.Active, QPalette.Link))
+            self.setFormat(text.find(" port created: "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Link))
         elif ": port deleted: " in text:
-            self.setFormat(text.find(" port deleted: "), len(text), self.fPalette.color(QPalette.Active, QPalette.LinkVisited))
-
-# ------------------------------------------------------------------------------------------------------------
-# Syntax Highlighter for LASH
-
-class SyntaxHighlighter_LASH(QSyntaxHighlighter):
-    def __init__(self, parent):
-        QSyntaxHighlighter.__init__(self, parent)
-
-        self.fPalette = parent.palette()
-
-    def highlightBlock(self, text):
-        if ": ERROR: " in text:
-            self.setFormat(text.find(" ERROR: "), len(text), Qt.red)
-        elif ": WARNING: " in text:
-            self.setFormat(text.find(" WARNING: "), len(text), Qt.darkRed)
-        elif ": ------------------" in text:
-            self.setFormat(text.find(" ------------------"), len(text), self.fPalette.color(QPalette.Active, QPalette.Mid))
-
-# ------------------------------------------------------------------------------------------------------------
-# Syntax Highlighter for LADISH
-
-class SyntaxHighlighter_LADISH(QSyntaxHighlighter):
-    def __init__(self, parent):
-        QSyntaxHighlighter.__init__(self, parent)
-
-        self.fPalette = parent.palette()
-
-    def highlightBlock(self, text):
-        if ": ERROR: " in text:
-            self.setFormat(text.find(" ERROR: "), len(text), Qt.red)
-        elif ": WARNING: " in text:
-            self.setFormat(text.find(" WARNING: "), len(text), Qt.darkRed)
-        elif ": -------" in text:
-            self.setFormat(text.find(" -------"), len(text), self.fPalette.color(QPalette.Active, QPalette.Mid))
+            self.setFormat(text.find(" port deleted: "), len(text), self.fPalette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.LinkVisited))
 
 # ------------------------------------------------------------------------------------------------------------
 # Lock-less file read thread
@@ -136,49 +97,29 @@ class LogsReadThread(QThread):
         # -------------------------------------------------------------
         # Take some values from Logs Window
 
-        self.LOG_FILE_JACK   = LogsW.LOG_FILE_JACK
-        self.LOG_FILE_A2J    = LogsW.LOG_FILE_A2J
-        self.LOG_FILE_LASH   = LogsW.LOG_FILE_LASH
-        self.LOG_FILE_LADISH = LogsW.LOG_FILE_LADISH
+        self.LOG_FILE_JACK = LogsW.LOG_FILE_JACK
+        self.LOG_FILE_A2J  = LogsW.LOG_FILE_A2J
 
         # -------------------------------------------------------------
         # Init logs
 
         if self.LOG_FILE_JACK is not None:
             self.fLogFileJACK = QFile(self.LOG_FILE_JACK)
-            self.fLogFileJACK.open(QIODevice.ReadOnly)
+            self.fLogFileJACK.open(QIODevice.OpenModeFlag.ReadOnly)
             self.fLogStreamJACK = QTextStream(self.fLogFileJACK)
-            self.fLogStreamJACK.setCodec("UTF-8")
+            self.fLogStreamJACK.setEncoding(QStringConverter.Encoding.Utf8)
 
             if self.fLogFileJACK.size() > self.MAX_INITIAL_SIZE:
                 self.fLogStreamJACK.seek(self.fLogFileJACK.size() - self.MAX_INITIAL_SIZE)
 
         if self.LOG_FILE_A2J is not None:
             self.fLogFileA2J = QFile(self.LOG_FILE_A2J)
-            self.fLogFileA2J.open(QIODevice.ReadOnly)
+            self.fLogFileA2J.open(QIODevice.OpenModeFlag.ReadOnly)
             self.fLogStreamA2J = QTextStream(self.fLogFileA2J)
-            self.fLogStreamA2J.setCodec("UTF-8")
+            self.fLogStreamA2J.setEncoding(QStringConverter.Encoding.Utf8)
 
             if self.fLogFileA2J.size() > self.MAX_INITIAL_SIZE:
                 self.fLogStreamA2J.seek(self.fLogFileA2J.size() - self.MAX_INITIAL_SIZE)
-
-        if self.LOG_FILE_LASH is not None:
-            self.fLogFileLASH = QFile(self.LOG_FILE_LASH)
-            self.fLogFileLASH.open(QIODevice.ReadOnly)
-            self.fLogStreamLASH = QTextStream(self.fLogFileLASH)
-            self.fLogStreamLASH.setCodec("UTF-8")
-
-            if self.fLogFileLASH.size() > self.MAX_INITIAL_SIZE:
-                self.fLogStreamLASH.seek(self.fLogFileLASH.size() - self.MAX_INITIAL_SIZE)
-
-        if self.LOG_FILE_LADISH is not None:
-            self.fLogFileLADISH = QFile(self.LOG_FILE_LADISH)
-            self.fLogFileLADISH.open(QIODevice.ReadOnly)
-            self.fLogStreamLADISH = QTextStream(self.fLogFileLADISH)
-            self.fLogStreamLADISH.setCodec("UTF-8")
-
-            if self.fLogFileLADISH.size() > self.MAX_INITIAL_SIZE:
-                self.fLogStreamLADISH.seek(self.fLogFileLADISH.size() - self.MAX_INITIAL_SIZE)
 
     def closeNow(self):
         self.fCloseNow = True
@@ -195,30 +136,16 @@ class LogsReadThread(QThread):
                 if self.LOG_FILE_JACK:
                     self.fLogStreamJACK.flush()
                     self.fLogFileJACK.close()
-                    self.fLogFileJACK.open(QIODevice.WriteOnly)
+                    self.fLogFileJACK.open(QIODevice.OpenModeFlag.WriteOnly)
                     self.fLogFileJACK.close()
-                    self.fLogFileJACK.open(QIODevice.ReadOnly)
+                    self.fLogFileJACK.open(QIODevice.OpenModeFlag.ReadOnly)
 
                 if self.LOG_FILE_A2J:
                     self.fLogStreamA2J.flush()
                     self.fLogFileA2J.close()
-                    self.fLogFileA2J.open(QIODevice.WriteOnly)
+                    self.fLogFileA2J.open(QIODevice.OpenModeFlag.WriteOnly)
                     self.fLogFileA2J.close()
-                    self.fLogFileA2J.open(QIODevice.ReadOnly)
-
-                if self.LOG_FILE_LASH:
-                    self.fLogStreamLASH.flush()
-                    self.fLogFileLASH.close()
-                    self.fLogFileLASH.open(QIODevice.WriteOnly)
-                    self.fLogFileLASH.close()
-                    self.fLogFileLASH.open(QIODevice.ReadOnly)
-
-                if self.LOG_FILE_LADISH:
-                    self.fLogStreamLADISH.flush()
-                    self.fLogFileLADISH.close()
-                    self.fLogFileLADISH.open(QIODevice.WriteOnly)
-                    self.fLogFileLADISH.close()
-                    self.fLogFileLADISH.open(QIODevice.ReadOnly)
+                    self.fLogFileA2J.open(QIODevice.OpenModeFlag.ReadOnly)
 
                 self.fPurgeLogs = False
 
@@ -233,21 +160,11 @@ class LogsReadThread(QThread):
                 else:
                     textA2J = ""
 
-                if self.LOG_FILE_LASH:
-                    textLASH = fixLogText(self.fLogStreamLASH.readAll()).strip()
-                else:
-                    textLASH = ""
-
-                if self.LOG_FILE_LADISH:
-                    textLADISH = fixLogText(self.fLogStreamLADISH.readAll()).strip()
-                else:
-                    textLADISH = ""
-
-                self.fRealParent.setLogsText(textJACK, textA2J, textLASH, textLADISH)
+                self.fRealParent.setLogsText(textJACK, textA2J)
                 self.updateLogs.emit()
 
             if not self.fCloseNow:
-                self.sleep(1)
+                self.msleep(200)
 
         # -------------------------------------------------------------
         # Close logs before closing thread
@@ -258,12 +175,6 @@ class LogsReadThread(QThread):
         if self.LOG_FILE_A2J:
             self.fLogFileA2J.close()
 
-        if self.LOG_FILE_LASH:
-            self.fLogFileLASH.close()
-
-        if self.LOG_FILE_LADISH:
-            self.fLogFileLADISH.close()
-
 # ------------------------------------------------------------------------------------------------------------
 # Logs Window
 
@@ -272,20 +183,12 @@ class LogsW(QDialog):
 
     LOG_FILE_JACK   = os.path.join(LOG_PATH, "jack", "jackdbus.log")
     LOG_FILE_A2J    = os.path.join(LOG_PATH, "a2j", "a2j.log")
-    LOG_FILE_LASH   = os.path.join(LOG_PATH, "lash", "lash.log")
-    LOG_FILE_LADISH = os.path.join(LOG_PATH, "ladish", "ladish.log")
 
     if not os.path.exists(LOG_FILE_JACK):
         LOG_FILE_JACK = None
 
     if not os.path.exists(LOG_FILE_A2J):
         LOG_FILE_A2J = None
-
-    if not os.path.exists(LOG_FILE_LASH):
-        LOG_FILE_LASH = None
-
-    if not os.path.exists(LOG_FILE_LADISH):
-        LOG_FILE_LADISH = None
 
     SIGTERM = pyqtSignal()
     SIGUSR1 = pyqtSignal()
@@ -301,10 +204,8 @@ class LogsW(QDialog):
         self.fFirstRun = True
         self.fTextLock = QMutex()
 
-        self.fTextJACK   = ""
-        self.fTextA2J    = ""
-        self.fTextLASH   = ""
-        self.fTextLADISH = ""
+        self.fTextJACK = ""
+        self.fTextA2J  = ""
 
         # -------------------------------------------------------------
         # Set-up GUI
@@ -325,14 +226,6 @@ class LogsW(QDialog):
             self.ui.tabWidget.removeTab(1 - tabIndex)
             tabIndex += 1
 
-        if self.LOG_FILE_LASH is None:
-            self.ui.tabWidget.removeTab(2 - tabIndex)
-            tabIndex += 1
-
-        if self.LOG_FILE_LADISH is None:
-            self.ui.tabWidget.removeTab(3 - tabIndex)
-            tabIndex += 1
-
         # -------------------------------------------------------------
         # Init logs viewers
 
@@ -344,19 +237,11 @@ class LogsW(QDialog):
             self.fSyntaxA2J = SyntaxHighlighter_A2J(self.ui.pte_a2j)
             self.fSyntaxA2J.setDocument(self.ui.pte_a2j.document())
 
-        if self.LOG_FILE_LASH:
-            self.fSyntaxLASH = SyntaxHighlighter_LASH(self.ui.pte_lash)
-            self.fSyntaxLASH.setDocument(self.ui.pte_lash.document())
-
-        if self.LOG_FILE_LADISH:
-            self.SyntaxLADISH = SyntaxHighlighter_LADISH(self.ui.pte_ladish)
-            self.SyntaxLADISH.setDocument(self.ui.pte_ladish.document())
-
         # -------------------------------------------------------------
         # Init file read thread
 
         self.fReadThread = LogsReadThread(self)
-        self.fReadThread.start(QThread.IdlePriority)
+        self.fReadThread.start(QThread.Priority.IdlePriority)
 
         # -------------------------------------------------------------
         # Set-up connections
@@ -366,13 +251,11 @@ class LogsW(QDialog):
 
         # -------------------------------------------------------------
 
-    def setLogsText(self, textJACK, textA2J, textLASH, textLADISH):
+    def setLogsText(self, textJACK, textA2J):
         QMutexLocker(self.fTextLock)
 
-        self.fTextJACK   = textJACK
-        self.fTextA2J    = textA2J
-        self.fTextLASH   = textLASH
-        self.fTextLADISH = textLADISH
+        self.fTextJACK = textJACK
+        self.fTextA2J  = textA2J
 
     @pyqtSlot()
     def slot_updateLogs(self):
@@ -381,8 +264,6 @@ class LogsW(QDialog):
         if self.fFirstRun:
             self.ui.pte_jack.clear()
             self.ui.pte_a2j.clear()
-            self.ui.pte_lash.clear()
-            self.ui.pte_ladish.clear()
 
         if self.LOG_FILE_JACK and self.fTextJACK:
             self.ui.pte_jack.appendPlainText(self.fTextJACK)
@@ -390,21 +271,11 @@ class LogsW(QDialog):
         if self.LOG_FILE_A2J and self.fTextA2J:
             self.ui.pte_a2j.appendPlainText(self.fTextA2J)
 
-        if self.LOG_FILE_LASH and self.fTextLASH:
-            self.ui.pte_lash.appendPlainText(self.fTextLASH)
-
-        if self.LOG_FILE_LADISH and self.fTextLADISH:
-            self.ui.pte_ladish.appendPlainText(self.fTextLADISH)
-
         if self.fFirstRun:
             self.ui.pte_jack.horizontalScrollBar().setValue(0)
             self.ui.pte_jack.verticalScrollBar().setValue(self.ui.pte_jack.verticalScrollBar().maximum())
             self.ui.pte_a2j.horizontalScrollBar().setValue(0)
             self.ui.pte_a2j.verticalScrollBar().setValue(self.ui.pte_a2j.verticalScrollBar().maximum())
-            self.ui.pte_lash.horizontalScrollBar().setValue(0)
-            self.ui.pte_lash.verticalScrollBar().setValue(self.ui.pte_lash.verticalScrollBar().maximum())
-            self.ui.pte_ladish.horizontalScrollBar().setValue(0)
-            self.ui.pte_ladish.verticalScrollBar().setValue(self.ui.pte_ladish.verticalScrollBar().maximum())
             self.fFirstRun = False
 
     @pyqtSlot()
@@ -412,8 +283,6 @@ class LogsW(QDialog):
         self.fReadThread.purgeLogs()
         self.ui.pte_jack.clear()
         self.ui.pte_a2j.clear()
-        self.ui.pte_lash.clear()
-        self.ui.pte_ladish.clear()
 
     def loadSettings(self):
         settings = QSettings("Cadence", "Cadence-Logs")
@@ -434,16 +303,12 @@ class LogsW(QDialog):
 
         QDialog.closeEvent(self, event)
 
-    def done(self, r):
-        QDialog.done(self, r)
-        self.close()
-
 # ------------------------------------------------------------------------------------------------------------
 # Allow to use this as a standalone app
 
 if __name__ == '__main__':
     # Additional imports
-    from PyQt5.QtWidgets import QApplication
+    from PyQt6.QtWidgets import QApplication
 
     # App initialization
     app = QApplication(sys.argv)
@@ -459,4 +324,4 @@ if __name__ == '__main__':
     setUpSignals(gui)
 
     # App-Loop
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

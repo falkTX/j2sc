@@ -332,13 +332,6 @@
              </property>
             </spacer>
            </item>
-           <item row="1" column="2" colspan="4">
-            <widget class="QCheckBox" name="cb_jack_autostart">
-             <property name="text">
-              <string>Auto-start JACK at login</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
         </layout>
