@@ -1,20 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-# JACK Settings Dialog
-# Copyright (C) 2010-2025 Filipe Coelho <falktx@falktx.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# For a full copy of the GNU General Public License see the COPYING file
+# SPDX-FileCopyrightText: 2010-2025 Filipe Coelho <falktx@falktx.com>
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 # ------------------------------------------------------------------------------------------------------------
 # Imports (Global)
@@ -222,6 +208,9 @@ class JackSettingsW(QDialog):
         self.fDriverName = ""
         self.fBrokenServerClockSource = False
 
+        # disabled unless pre-selected
+        self.ui.obj_server_clock_source_cycle.setEnabled(False)
+
         self.checkEngine()
         self.loadServerSettings()
         self.loadDriverSettings(True) # reset because we'll change it below
@@ -387,6 +376,7 @@ class JackSettingsW(QDialog):
                 if len(str(value)) == 1 and not isinstance(value, dbus.UInt32):
                     value = str(value)
                     if value == "c":
+                        self.ui.obj_server_clock_source_cycle.setEnabled(True)
                         self.ui.obj_server_clock_source_cycle.setChecked(True)
                     elif value == "h":
                         self.ui.obj_server_clock_source_hpet.setChecked(True)
@@ -398,6 +388,7 @@ class JackSettingsW(QDialog):
                     if value == JACK_TIMER_SYSTEM_CLOCK:
                         self.ui.obj_server_clock_source_system.setChecked(True)
                     elif value == JACK_TIMER_CYCLE_COUNTER:
+                        self.ui.obj_server_clock_source_cycle.setEnabled(True)
                         self.ui.obj_server_clock_source_cycle.setChecked(True)
                     elif value == JACK_TIMER_HPET:
                         self.ui.obj_server_clock_source_hpet.setChecked(True)
