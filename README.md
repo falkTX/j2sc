@@ -21,6 +21,7 @@ A rough list of items planned for implementation in future releases:
  - JACK "max dsp load" information (needs changes on JACK2 side first)
  - JACK "session file", similar to `jackd -C <file>`
  - Find ways to give estimate "full roundtrip latency" => buffer-size * (n-periods + async-on) + hw-reported-latency
+ - Use a2jmidid hw-export DBus call instead of local application setting
 
 ### Unwanted features
 
