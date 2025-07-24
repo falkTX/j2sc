@@ -9,8 +9,8 @@ J2SC stands for JACK 2 Simple Configurator and is, as the name says, a configura
 J2SC is mean to be a configuration tool for JACK2, working through the jackdbus interface.  
 Compatibility with other JACK versions (or PipeWire) is possible but will be accidental, focus is on JACK2.
 
-Linux is the mainly supported OS, it might work on other systems like BSD but on those "you are on your own".  
-There is no support whatsoever for macOS, Windows, or any other platform where a DBus is not a core system feature.
+Linux is the mainly supported OS, it might work on other systems like BSD but on those "you are on your own".
+There is also no support whatsoever for macOS, Windows, or any other platform where a DBus is not a core system feature.
 
 Also there is no support for network related JACK backends, as the author has no use for them.
 
@@ -20,7 +20,7 @@ A rough list of items planned for implementation in future releases:
 
  - JACK "max dsp load" information (needs changes on JACK2 side first)
  - JACK "session file", similar to `jackd -C <file>`
- - Find ways to give estimate "full roundtrip latency" => buffer-size * (n-periods + async-on) + hw-reported-latency
+ - Find ways to give estimate "full roundtrip latency" => buffer-size * (n-periods + async-on) + hw-latency
  - Use a2jmidid hw-export DBus call instead of local application setting
 
 ### Unwanted features
@@ -33,7 +33,7 @@ Stuff that is not coming to J2SC for sure:
 
 ## Relation to Cadence
 
-J2SC is based on the old Cadence also from me (falkTX), but with everything removed except the JACK configuration part.  
+J2SC is based on the old Cadence also from me (falkTX), but with everything removed except the JACK configuration part.
 I abandoned the Cadence as it was not up to my own standards, it was one of the very first projects I started as a way to learn GUI programming.
 
 Over time Cadence small parts have moved into other projects:
