@@ -10,7 +10,7 @@ J2SC is mean to be a configuration tool for JACK2, working through the jackdbus 
 Compatibility with other JACK versions (or PipeWire) is possible but will be accidental, focus is on JACK2.
 
 Linux is the mainly supported OS, it might work on other systems like BSD but on those "you are on your own".
-There is also no support whatsoever for macOS, Windows, or any other platform where a DBus is not a core system feature.
+There is no support whatsoever for macOS, Windows, or any other platform where a DBus is not a core system feature.
 
 Also there is no support for network related JACK backends, as the author has no use for them.
 
